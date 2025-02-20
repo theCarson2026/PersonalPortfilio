@@ -1,0 +1,575 @@
+/* ---------------------------- */
+/* Reset & Base Styles          */
+/* ---------------------------- */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f9f9f9;
+  color: #333;
+}
+
+/* ---------------------------- */
+/* Main Site Styles             */
+/* ---------------------------- */
+
+/* Header Container */
+header {
+  display: flex;               /* Use Flexbox */
+  justify-content: space-between;
+  align-items: center;
+  background-color: #004080;
+  color: #fff;
+  padding: 20px;
+}
+
+/* Logo Area */
+.logo h1 {
+  margin: 0;
+  font-size: 24px;
+}
+
+/* User Info Box */
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;                   /* Spacing between text and logout link */
+  background-color: #fff;      /* A contrasting background */
+  color: #333;                 /* Text color for inside the box */
+  padding: 8px 16px;           /* Some space inside the box */
+  border-radius: 4px;          /* Slightly rounded corners */
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* Subtle shadow */
+}
+
+/* Welcome Text */
+.user-info .welcome {
+  font-weight: bold;
+}
+
+/* Logout Link */
+.user-info .logout-link {
+  text-decoration: none;
+  color: #004080;
+  font-weight: bold;
+  border: 1px solid #004080;
+  padding: 5px 10px;
+  border-radius: 4px;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+/* Logout Link Hover Effect */
+.user-info .logout-link:hover {
+  background-color: #004080;
+  color: #fff;
+}
+
+/* Layout Container */
+.container {
+  display: flex;
+}
+
+/* Sidebar Navigation */
+.sidebar {
+  width: 200px;
+  background-color: #00264d;
+  min-height: calc(100vh - 80px);
+  padding: 20px;
+  color: #fff;
+}
+.sidebar ul {
+  list-style-type: none;
+}
+.sidebar li {
+  margin: 15px 0;
+}
+.sidebar a {
+  text-decoration: none;
+  color: #fff;
+  font-weight: bold;
+}
+.sidebar a:hover {
+  color: #ffcc00;
+}
+
+/* Main Content */
+.main-content {
+  flex: 1;
+  padding: 20px;
+}
+
+/* Overview Cards */
+.overview {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 40px;
+}
+.card {
+  flex: 1;
+  background-color: #fff;
+  border-radius: 8px;
+  padding: 20px;
+  margin: 0 10px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  text-align: center;
+}
+.card h2 {
+  margin-bottom: 10px;
+  font-size: 20px;
+  color: #004080;
+}
+.card p {
+  font-size: 24px;
+  font-weight: bold;
+}
+
+/* Transactions Table */
+.transactions {
+  margin-bottom: 40px;
+}
+.transactions h2 {
+  margin-bottom: 15px;
+  color: #004080;
+}
+.transactions table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: #fff;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+.transactions th, 
+.transactions td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+.transactions th {
+  background-color: #004080;
+  color: #fff;
+}
+.transactions tr:hover {
+  background-color: #f1f1f1;
+}
+
+/* Buttons in Transactions Table */
+.transactions button {
+  padding: 5px 10px;
+  margin-right: 5px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.transactions .edit {
+  background-color: #ffcc00;  /* Yellow for edit */
+  color: #333;
+}
+
+.transactions .delete {
+  background-color: #e60000;  /* Red for delete */
+  color: #fff;
+}
+
+/* New styles for inline editing buttons */
+.transactions button.save {
+  background-color: #4CAF50;  /* Green for save */
+  color: #fff;
+}
+
+.transactions button.cancel {
+  background-color: #e60000;  /* Red for cancel */
+  color: #fff;
+}
+
+/* New Transaction Form */
+.new-transaction {
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+.new-transaction h2 {
+  margin-bottom: 20px;
+  color: #004080;
+}
+.new-transaction form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+.new-transaction .form-group {
+  display: flex;
+  flex-direction: column;
+}
+.new-transaction label {
+  margin-bottom: 8px;
+  font-weight: bold;
+}
+.new-transaction input,
+.new-transaction select {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+.new-transaction .btn {
+  grid-column: span 2;
+  background-color: #004080;
+  color: #fff;
+  border: none;
+  padding: 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  margin-top: 10px;
+}
+.new-transaction .btn:hover {
+  background-color: #003366;
+}
+
+/* Footer */
+footer {
+  background-color: #f4f4f4;
+  color: #666;
+  text-align: center;
+  padding: 15px;
+  margin-top: 20px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .container {
+      flex-direction: column;
+  }
+  .sidebar {
+      width: 100%;
+      min-height: auto;
+  }
+  .overview {
+      flex-direction: column;
+  }
+  .overview .card {
+      margin: 10px 0;
+  }
+  .new-transaction form {
+      grid-template-columns: 1fr;
+  }
+}
+
+/* ---------------------------- */
+/* Authentication Page Styles   */
+/* (For login and signup pages) */
+/* ---------------------------- */
+.auth-page {
+  background-color: #f4f4f4;
+}
+
+.auth-page header {
+  background-color: #004080;
+  color: #fff;
+  padding: 20px;
+  text-align: center;
+}
+
+.auth-page main {
+  max-width: 400px;
+  margin: 40px auto;
+  background-color: #fff;
+  padding: 30px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.auth-page form div {
+  margin-bottom: 15px;
+}
+
+.auth-page form label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 5px;
+  color: #333;
+}
+
+.auth-page form input[type="text"],
+.auth-page form input[type="password"] {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.auth-page form button {
+  width: 100%;
+  padding: 10px;
+  background-color: #004080;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.3s;
+}
+
+.auth-page form button:hover {
+  background-color: #003366;
+}
+
+.auth-page ul {
+  list-style: none;
+  padding: 0;
+  margin-bottom: 15px;
+  color: red;
+  text-align: center;
+}
+
+.auth-page main p {
+  text-align: center;
+  margin-top: 20px;
+}
+
+.auth-page main p a {
+  color: #004080;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.auth-page main p a:hover {
+  text-decoration: underline;
+}
+
+/* ------------------------------------ */
+/* Responsive Design for Mobile Devices */
+/* ------------------------------------ */
+@media (max-width: 768px) {
+  /* Container: stack sidebar and main content */
+  .container {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  /* Sidebar: full width, centered text */
+  .sidebar {
+    width: 100%;
+    padding: 10px;
+    text-align: center;
+    min-height: auto;
+  }
+  
+  /* Main Content: full width with reduced padding */
+  .main-content {
+    width: 100%;
+    padding: 10px;
+  }
+  
+  /* Header: stack elements and center-align */
+  header {
+    flex-direction: column;
+    align-items: center;
+    padding: 15px;
+  }
+  header .logo h1 {
+    font-size: 20px;
+  }
+  .user-info {
+    margin-top: 10px;
+  }
+  
+  /* Overview Section: stack cards vertically */
+  .overview {
+    flex-direction: column;
+    gap: 10px;
+  }
+  .overview .card {
+    margin: 0;
+    margin-bottom: 10px;
+  }
+  
+  /* Transactions Table: make table scrollable horizontally */
+  .transactions table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    margin-bottom: 20px;
+  }
+  
+  /* Reduce font size for better readability on small screens */
+  body {
+    font-size: 14px;
+  }
+  
+  /* New Transaction Form: single column layout */
+  .new-transaction form {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+  .new-transaction .btn {
+    grid-column: 1 / -1;
+  }
+}
+
+
+
+
+
+
+
+
+/* ================================ */
+/* Summary Page Specific Styles     */
+/* ================================ */
+
+/* Summary Page Main Content */
+.main-content {
+  padding: 20px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  margin: 20px auto;
+  max-width: 1000px;  /* Adjust as needed */
+}
+
+/* Page Title and Headings */
+.main-content h2 {
+  text-align: center;
+  color: #004080;
+  margin-bottom: 20px;
+  font-size: 28px;
+}
+
+.main-content h3 {
+  color: #004080;
+  margin: 30px 0 10px;
+  font-size: 22px;
+  border-bottom: 2px solid #004080;
+  padding-bottom: 5px;
+}
+
+/* Summary Options (Monthly/Weekly Links) */
+.summary-options {
+  text-align: center;
+  margin-bottom: 20px;
+}
+.summary-options a {
+  color: #004080;
+  text-decoration: none;
+  font-weight: bold;
+  margin: 0 15px;
+  transition: color 0.3s;
+}
+.summary-options a:hover {
+  color: #ffcc00;
+  text-decoration: underline;
+}
+
+/* Tables for Period Summary and Category Summary */
+.main-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 30px;
+}
+.main-content table th,
+.main-content table td {
+  padding: 12px;
+  border: 1px solid #ddd;
+  text-align: center;
+}
+.main-content table th {
+  background-color: #004080;
+  color: #fff;
+  font-weight: bold;
+}
+.main-content table tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+.main-content table tr:hover {
+  background-color: #f1f1f1;
+}
+
+/* Responsive adjustments for the summary page */
+@media (max-width: 768px) {
+  .main-content {
+    padding: 15px;
+    margin: 10px;
+  }
+  .main-content h2 {
+    font-size: 24px;
+  }
+  .main-content h3 {
+    font-size: 18px;
+  }
+  .main-content table th,
+  .main-content table td {
+    padding: 8px;
+    font-size: 14px;
+  }
+  .summary-options a {
+    margin: 0 10px;
+  }
+}
+
+/* Charts Section Styling */
+.charts {
+  margin-top: 40px;
+}
+
+.charts-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.chart-item {
+  flex: 1 1 calc(50% - 20px); /* Each chart takes roughly half the width minus the gap */
+  background: #fff;
+  padding: 10px;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.chart-item h4 {
+  margin-bottom: 10px;
+  color: #004080;
+}
+
+.chart-item canvas {
+  width: 100%;  /* Canvas fills the container's width */
+  max-width: 100%;
+  height: auto;
+}
+
+/* Responsive adjustment: stack charts on small screens */
+@media (max-width: 768px) {
+  .charts-container {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .chart-item {
+    flex: 1 1 100%;
+  }
+}
+
+.download-report {
+  text-align: center;
+  margin-top: 20px;
+}
+
+.download-report .btn {
+  display: inline-block;
+  background-color: #004080;
+  color: #fff;
+  padding: 12px 20px;
+  border-radius: 4px;
+  text-decoration: none;
+  font-size: 16px;
+  transition: background-color 0.3s;
+}
+
+.download-report .btn:hover {
+  background-color: #003366;
+}

@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Finance Report</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <!-- Include Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <header>
+    <div class="logo">
+      <h1>Student Finance Manager</h1>
+    </div>
+    <div class="user-info">
+      <span class="welcome">Welcome, {{ session['username'] }}</span>
+      <a href="{{ url_for('logout') }}" class="logout-link">Logout</a>
+    </div>
+  </header>
+  
+  <div class="container">
+    <aside class="sidebar">
+      <nav>
+        <ul>
+          <li><a href="{{ url_for('index') }}">Dashboard</a></li>
+          <li><a href="{{ url_for('summary') }}">Reports</a></li>
+        </ul>
+      </nav>
+    </aside>
+    
+    <main class="main-content">
+      <h2>Transaction Summary ({{ period|capitalize }})</h2>
+      <div class="summary-options">
+        <a href="{{ url_for('summary', period='monthly') }}">Monthly</a> | 
+        <a href="{{ url_for('summary', period='weekly') }}">Weekly</a>
+      </div>
+      
+      <section class="period-summary">
+        <h3>Income and Expenses Over Time</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Period</th>
+              <th>Total Income</th>
+              <th>Total Expenses</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in period_summary %}
+            <tr>
+              <td>{{ row.period }}</td>
+              <td>${{ '%.2f'|format(row.total_income) }}</td>
+              <td>${{ '%.2f'|format(row.total_expense) }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </section>
+      
+      <section class="category-summary">
+        <h3>Expenses by Category</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Category</th>
+              <th>Total Spent</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in category_summary %}
+            <tr>
+              <td>{{ row.category }}</td>
+              <td>${{ '%.2f'|format(row.total_spent) }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </section>
+      
+      <!-- Charts Section -->
+      <section class="charts">
+        <h3>Charts</h3>
+        <div class="charts-container">
+          <div class="chart-item">
+            <h4>Expense Allocation by Category</h4>
+            <canvas id="allocationChart"></canvas>
+          </div>
+          <div class="chart-item">
+            <h4>Monthly Spending (Last 12 Months)</h4>
+            <canvas id="monthlyChart"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <section class="download-report">
+        <a href="{{ url_for('download_report') }}" class="btn">Download Report</a>
+      </section>
+  
+  <footer>
+    <p>&copy; 2025 Carson Duersch. All rights reserved.</p>
+  </footer>
+  
+  <script>
+    const categoryData = {{ category_summary|default([])|tojson|safe }};
+    const pieLabels = categoryData.map(item => item.category);
+    const pieData = categoryData.map(item => item.total_spent);
+  
+    const allocationCtx = document.getElementById('allocationChart').getContext('2d');
+    const allocationChart = new Chart(allocationCtx, {
+      type: 'pie',
+      data: {
+        labels: pieLabels,
+        datasets: [{
+          label: 'Expense Allocation',
+          data: pieData,
+          backgroundColor: [
+            '#FF6384',
+            '#36A2EB',
+            '#FFCE56',
+            '#4BC0C0',
+            '#9966FF',
+            '#FF9F40'
+          ],
+          hoverOffset: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            position: 'bottom'
+          }
+        }
+      }
+    });
+  
+    const monthlyData = {{ monthly_expenses|default([])|tojson|safe }};
+    const lineLabels = monthlyData.map(item => item.period);
+    const lineData = monthlyData.map(item => item.total_expense);
+  
+    const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
+    const monthlyChart = new Chart(monthlyCtx, {
+      type: 'line',
+      data: {
+        labels: lineLabels,
+        datasets: [{
+          label: 'Monthly Spending',
+          data: lineData,
+          borderColor: '#FF6384',
+          backgroundColor: 'rgba(255,99,132,0.2)',
+          fill: true,
+          tension: 0.4
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: {
+            beginAtZero: true,
+            title: {
+              display: true,
+              text: 'Amount ($)'
+            }
+          },
+          x: {
+            title: {
+              display: true,
+              text: 'Month'
+            }
+          }
+        },
+        plugins: {
+          legend: {
+            display: true,
+            position: 'bottom'
+          }
+        }
+      }
+    });
+  </script>
+</body>
+</html>

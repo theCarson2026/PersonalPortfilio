@@ -1,0 +1,404 @@
+from flask import Flask, render_template, request, redirect, url_for, session, flash, Response
+import sqlite3
+import os
+import io
+import csv
+
+current_balance = 0.00
+total_income = 0.00
+total_expenses = 0.00
+
+app = Flask(__name__)
+app.secret_key = os.urandom(24)
+
+DATABASE = "PersonalFinance.db"
+
+def init_db():
+    db = sqlite3.connect(DATABASE)
+    db.row_factory = sqlite3.Row
+    cur = db.cursor()
+
+    # Create the users table
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username VARCHAR(130) UNIQUE,
+            password VARCHAR(255),
+            balance FLOAT DEFAULT 0
+        );
+    """)
+
+    # Create the transactions table
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS transactions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            date VARCHAR(20),
+            category VARCHAR(255),
+            type TEXT,
+            amount FLOAT,
+            user_id INTEGER
+        );
+    """)
+
+    db.commit()
+    db.close()
+
+def get_db_connection():
+    db = sqlite3.connect(DATABASE)
+    db.row_factory = sqlite3.Row
+    return db
+
+def get_user_by_name(username):
+    db = get_db_connection()
+    db.row_factory = sqlite3.Row
+    cur = db.cursor()
+    cur.execute("SELECT * FROM users WHERE username = ?", (username,))
+    row = cur.fetchone()
+    db.close()
+    return row
+
+def create_user(username, password):
+    #Hash here
+    db = get_db_connection()
+    db.row_factory = sqlite3.Row
+    cur = db.cursor()
+    try: 
+        cur.execute("INSERT INTO users (username, password) VALUES (?,?)", (username, password))
+        db.commit()
+    except sqlite3.IntegrityError:
+        db.close()
+        return False # The username already exists
+    db.close()
+    return True
+
+def get_by_user_pass(username, password):
+    db = get_db_connection()
+    db.row_factory = sqlite3.Row
+    cur = db.cursor()
+    cur.execute("SELECT * FROM users WHERE username = ? AND password = ?", (username, password))
+    row = cur.fetchone()
+    db.close()
+
+    if row:
+        return dict(row)
+    return None
+
+def get_user_balance(user_id):
+    db = get_db_connection()
+    db.row_factory = sqlite3.Row
+    cur = db.cursor()
+    cur.execute("""
+        SELECT SUM(CASE WHEN LOWER(type) = 'income' THEN amount
+                        WHEN LOWER(type) = 'expense' THEN -amount
+                        ELSE 0
+                END) AS balance
+        FROM transactions
+        WHERE user_id = ?
+    """, (user_id,))
+    row = cur.fetchone()
+    db.close()
+
+    return row["balance"] if row ['balance'] is not None else 0.0
+
+def get_transactions_by_user(user_id, search = None, filter_type=None, sort_by=None, order='asc'):
+    #Connect to the database
+    db = get_db_connection()
+    db.row_factory = sqlite3.Row
+    cur = db.cursor()
+
+    query = ("SELECT * FROM transactions WHERE user_id = ?")
+    parameters = [user_id]
+    conditions = []
+
+    if search:
+        conditions.append("category LIKE ?")
+        parameters.append(f"%(search)%")
+
+    if filter_type:
+        conditions.append("LOWER(type) = ?")
+        parameters.append(filter_type.lower())
+
+
+    if conditions:
+        query += " AND " + " AND ".join(conditions)
+
+    if sort_by in ['date', 'category', 'type', 'amount']:
+        query +=  f" ORDER BY {sort_by}"
+        if order.lower() == "desc":
+            query += " DESC"
+        else: 
+            query += " ASC"
+
+    cur.execute(query, parameters)
+    rows = cur.fetchall()
+    db.close()
+
+    return [dict(row) for row in rows]
+@app.route("/signup", methods=["GET", "POST"])
+def signup():
+    if request.method == "POST":
+        username = request.form.get("username")
+        password = request.form.get("password")
+
+        if not username or not password:
+            flash("Please provide both username and password")
+            return redirect(url_for('signup'))
+        
+        success = create_user(username, password)
+
+        if not success:
+            flash("Username already exists. Please choose a different one.")
+            return redirect(url_for("signup"))
+        
+        if success:
+            flash("Please log in.")
+            return redirect(url_for("login"))
+        
+    return render_template("signup.html") 
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        username = request.form.get("username")
+        password = request.form.get("password")
+        user = get_by_user_pass(username, password)
+        if user:
+            session['user_id'] = int(user['id'])
+            session['username'] = user["username"]
+            return redirect(url_for('index'))
+        else:
+            flash("Invalid username or password.")
+            return redirect(url_for("login"))
+    return render_template("login.html")
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("login"))
+
+@app.route("/")
+def index():
+
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    user_id = session['user_id']
+    username = session['username']
+
+    search = request.args.get("search")
+    filter_type = request.args.get("filter_type")
+    sort_by = request.args.get("sort_by")
+    order = request.args.get("order", "asc")
+
+    transactions = get_transactions_by_user(user_id, search, filter_type, sort_by, order)
+    balance = get_user_balance(user_id)
+
+    total_income = sum(t['amount'] for t in transactions if t['type'].lower() == 'income')
+    total_expenses = sum(t['amount'] for t in transactions if t['type'].lower() == 'expense')
+
+    return render_template(
+        "index.html", 
+        username = username,
+        current_balance=balance, 
+        total_expenses=total_expenses, 
+        total_income=total_income, 
+        transactions=transactions
+    )
+
+@app.route("/add_transaction", methods=["POST"])
+def add_transaction():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    user_id = session['user_id']
+
+    date = request.form.get("date")
+    category = request.form.get("category")
+    transaction_type = request.form.get("type", "").strip()
+    amount_str = request.form.get("amount")
+    
+    if not date or not category or not transaction_type or not amount_str:
+        return redirect(url_for("index"))
+    
+    try:
+        amount = float(amount_str)
+    except (ValueError, TypeError):
+        amount = 0
+
+    db = get_db_connection()
+    db.row_factory = sqlite3.Row
+    cur = db.cursor()
+    cur.execute(
+        "INSERT INTO transactions (date, category, type, amount, user_id) VALUES (?, ?, ?, ?, ?)",
+        (date, category, transaction_type, amount, user_id)
+    )
+    db.commit()
+    db.close()
+
+    return redirect(url_for("index"))
+
+@app.route("/delete_transaction/<int:transaction_id>", methods=["POST"])
+def delete_transaction(transaction_id):
+
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    user_id = session['user_id']
+
+    db = get_db_connection()
+    db.row_factory = sqlite3.Row
+    cur = db.cursor()
+
+    cur.execute("SELECT * FROM transactions WHERE id = ? AND user_id = ?", (transaction_id, user_id))
+    row = cur.fetchone()
+    if not row:
+        db.close()
+        return redirect(url_for("index"))
+
+    cur.execute("DELETE FROM transactions WHERE id = ?", (transaction_id,))
+    db.commit()
+    db.close()
+
+    return redirect(url_for("index"))
+
+@app.route("/update_transaction/<int:transaction_id>", methods=["POST"])
+def update_transaction(transaction_id):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    user_id = session['user_id']
+
+    new_date = request.form.get("date")
+    new_category = request.form.get("category")
+    new_type = request.form.get("type", "").strip()
+    new_amount_str = request.form.get("amount")
+    try:
+        new_amount = float(new_amount_str)
+    except (ValueError, TypeError):
+        new_amount = 0
+
+    db = get_db_connection()
+    db.row_factory = sqlite3.Row
+    cur = db.cursor()
+
+    cur.execute("SELECT * FROM transactions WHERE id = ? AND user_id = ?", (transaction_id, user_id))
+    old_row = cur.fetchone()
+    if not old_row:
+        db.close()
+        return redirect(url_for("index"))
+
+    #Update the database
+    cur.execute("UPDATE transactions SET date = ?, category = ?, type = ?, amount = ? WHERE id = ?", (new_date, new_category, new_type, new_amount, transaction_id))
+    db.commit()
+    db.close()
+
+    return redirect(url_for("index"))
+
+@app.route("/summary")
+def summary():
+    if 'user_id' not in session:
+        return redirect(url_for("login"))
+    
+    user_id = session['user_id']
+    period = request.args.get("period", "monthly")
+    
+    # Existing queries to get period_summary and category_summary...
+    conn = get_db_connection()
+    cur = conn.cursor()
+    
+    if period == "weekly":
+        query = """
+            SELECT strftime('%Y-%W', date) AS period,
+                   SUM(CASE WHEN LOWER(type) = 'income' THEN amount ELSE 0 END) AS total_income,
+                   SUM(CASE WHEN LOWER(type) = 'expense' THEN amount ELSE 0 END) AS total_expense
+            FROM transactions
+            WHERE user_id = ?
+            GROUP BY period
+            ORDER BY period DESC;
+        """
+    else:
+        query = """
+            SELECT strftime('%Y-%m', date) AS period,
+                   SUM(CASE WHEN LOWER(type) = 'income' THEN amount ELSE 0 END) AS total_income,
+                   SUM(CASE WHEN LOWER(type) = 'expense' THEN amount ELSE 0 END) AS total_expense
+            FROM transactions
+            WHERE user_id = ?
+            GROUP BY period
+            ORDER BY period DESC;
+        """
+    cur.execute(query, (user_id,))
+    period_summary = [dict(row) for row in cur.fetchall()]
+    
+    cur.execute("""
+        SELECT category, SUM(amount) AS total_spent
+        FROM transactions
+        WHERE user_id = ? AND LOWER(type) = 'expense'
+        GROUP BY category
+        ORDER BY total_spent DESC;
+    """, (user_id,))
+    category_summary = [dict(row) for row in cur.fetchall()]
+    
+    # Here, compute monthly_expenses or set it to an empty list if you don't have data.
+    # For example, let's assume you want to compute monthly expenses for the last 12 months:
+    cur.execute("""
+        SELECT strftime('%Y-%m', date) AS period,
+               SUM(CASE WHEN LOWER(type) = 'expense' THEN amount ELSE 0 END) AS total_expense
+        FROM transactions
+        WHERE user_id = ?
+        GROUP BY period
+        ORDER BY period ASC;
+    """, (user_id,))
+    monthly_expenses = [dict(row) for row in cur.fetchall()]
+    
+    conn.close()
+    
+    # If monthly_expenses is empty, ensure it's defined (an empty list is JSON serializable)
+    if monthly_expenses is None:
+        monthly_expenses = []
+    
+    return render_template("summary.html",
+                           period_summary=period_summary,
+                           category_summary=category_summary,
+                           monthly_expenses=monthly_expenses,
+                           period=period)
+
+@app.route("/download_report")
+def download_report():
+    # Make sure the user is logged in.
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    user_id = session['user_id']
+    
+    # Connect to the database and fetch transactions for this user.
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT date, category, type, amount FROM transactions WHERE user_id = ?", (user_id,))
+    rows = cur.fetchall()
+    conn.close()
+    
+    # Create a CSV in memory.
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # Write header row
+    writer.writerow(['Date', 'Category', 'Type', 'Amount'])
+    
+    # Write data rows
+    for row in rows:
+        # Each row is a sqlite3.Row so you can access by key
+        writer.writerow([row['date'], row['category'], row['type'], row['amount']])
+    
+    # Get CSV data as a string.
+    csv_data = output.getvalue()
+    output.close()
+    
+    # Return a response with appropriate headers to trigger a download.
+    return Response(
+        csv_data,
+        mimetype="text/csv",
+        headers={"Content-Disposition": "attachment; filename=report.csv"}
+    )
+
+
+if __name__ == "__main__":
+    init_db()
+    app.run(debug=True, host='0.0.0.0')

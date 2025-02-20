@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Finance Manager</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <script>
+    function toggleEdit(id) {
+      var displayRow = document.getElementById("display-" + id);
+      var editRow = document.getElementById("edit-" + id);
+      if (editRow.style.display === "none") {
+        editRow.style.display = "table-row";
+        displayRow.style.display = "none";
+      } else {
+        editRow.style.display = "none";
+        displayRow.style.display = "table-row";
+      }
+    }
+  </script>
+</head>
+<body>
+  <header>
+    <div class="logo">
+      <h1>Student Finance Manager</h1>
+    </div>
+    <!-- User Info Box -->
+    <div class="user-info">
+      <span class="welcome">Welcome, {{ username }}</span>
+      <a href="{{ url_for('logout') }}" class="logout-link">Logout</a>
+    </div>
+  </header>
+  
+  <div class="container">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <nav>
+        <ul>
+          <li><a href="{{ url_for('index') }}">Dashboard</a></li>
+          <li><a href="{{ url_for('summary') }}">Reports</a></li>
+        </ul>
+      </nav>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- Overview Section -->
+      <section class="overview">
+        <div class="card balance">
+          <h2>Current Balance</h2>
+          <p>$ {{ '%.2f' % current_balance }}</p>
+        </div>
+        <div class="card income">
+          <h2>Total Income</h2>
+          <p>$ {{ '%.2f' % total_income }}</p>
+        </div>
+        <div class="card expenses">
+          <h2>Total Expenses</h2>
+          <p>$ {{ '%.2f' % total_expenses }}</p>
+        </div>
+      </section>
+
+      <!-- Search/Filter Section -->
+      <section class="search-filter">
+        <form action="{{ url_for('index') }}" method="get">
+          <input type="text" name="search" placeholder="Search by category..." value="{{ request.args.get('search', '') }}">
+          <select name="filter_type">
+            <option value="">All Types</option>
+            <option value="Income" {% if request.args.get('filter_type') == 'Income' %}selected{% endif %}>Income</option>
+            <option value="Expense" {% if request.args.get('filter_type') == 'Expense' %}selected{% endif %}>Expense</option>
+          </select>
+          <select name="sort_by">
+            <option value="">Sort by</option>
+            <option value="date" {% if request.args.get('sort_by') == 'date' %}selected{% endif %}>Date</option>
+            <option value="category" {% if request.args.get('sort_by') == 'category' %}selected{% endif %}>Category</option>
+            <option value="amount" {% if request.args.get('sort_by') == 'amount' %}selected{% endif %}>Amount</option>
+          </select>
+          <select name="order">
+            <option value="asc" {% if request.args.get('order', 'asc') == 'asc' %}selected{% endif %}>Ascending</option>
+            <option value="desc" {% if request.args.get('order') == 'desc' %}selected{% endif %}>Descending</option>
+          </select>
+          <button type="submit" class="btn">Search/Filter</button>
+        </form>
+      </section>
+
+      <!-- Transactions Table -->
+      <section class="transactions">
+        <h2>Recent Transactions</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Category</th>
+              <th>Type</th>
+              <th>Amount</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for transaction in transactions %}
+            <!-- Display Row -->
+            <tr id="display-{{ transaction.id }}">
+              <td>{{ transaction.date }}</td>
+              <td>{{ transaction.category }}</td>
+              <td>{{ transaction.type }}</td>
+              <td>$ {{ '%.2f' % transaction.amount }}</td>
+              <td>
+                <button class="edit" data-id="{{ transaction.id }}" onclick="toggleEdit(this.dataset.id)">Edit</button>
+                <form action="{{ url_for('delete_transaction', transaction_id=transaction.id) }}" method="post" style="display:inline;">
+                  <button type="submit" class="delete">Delete</button>
+                </form>
+              </td>
+            </tr>
+            <!-- Inline Edit Row (Hidden by default) -->
+            <tr id="edit-{{ transaction.id }}" style="display:none;">
+              <form action="{{ url_for('update_transaction', transaction_id=transaction.id) }}" method="post">
+                <td>
+                  <input type="date" name="date" value="{{ transaction.date }}" required>
+                </td>
+                <td>
+                  <input type="text" name="category" value="{{ transaction.category }}" required>
+                </td>
+                <td>
+                  <select name="type" required>
+                    <option value="Income" {% if transaction.type.lower() == 'income' %}selected{% endif %}>Income</option>
+                    <option value="Expense" {% if transaction.type.lower() == 'expense' %}selected{% endif %}>Expense</option>
+                  </select>
+                </td>
+                <td>
+                  <input type="float" name="amount" value="{{ transaction.amount }}" required>
+                </td>
+                <td>
+                  <button type="submit" class="save">Save</button>
+                  <button type="button" class="cancel" data-id="{{ transaction.id }}" onclick="toggleEdit(this.dataset.id)">Cancel</button>
+                </td>
+              </form>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </section>
+
+      <!-- New Transaction Form -->
+      <section class="new-transaction">
+        <h2>Add New Transaction</h2>
+        <form action="{{ url_for('add_transaction') }}" method="post">
+          <div class="form-group">
+            <label for="amount">Amount</label>
+            <input type="float" name="amount" id="amount" placeholder="$0.00" required />
+          </div>
+          <div class="form-group">
+            <label for="category">Category</label>
+            <input type="text" name="category" id="category" placeholder="e.g. Salary, Groceries" required />
+          </div>
+          <div class="form-group">
+            <label for="date">Date</label>
+            <input type="date" name="date" id="date" required />
+          </div>
+          <div class="form-group">
+            <label for="type">Type</label>
+            <select name="type" id="type" required>
+              <option value="Income">Income</option>
+              <option value="Expense">Expense</option>
+            </select>
+          </div>
+          <button type="submit" class="btn">Add Transaction</button>
+        </form>
+      </section>
+    </main>
+  </div>
+
+  <footer>
+    <p>&copy; 2025 Carson Duersch. All rights reserved.</p>
+  </footer>
+</body>
+</html>
